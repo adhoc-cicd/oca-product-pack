@@ -41,7 +41,7 @@ class SaleOrderLine(models.Model):
             for pack_line in self.product_id.pack_line_ids.with_context(
                 pricelist=self.order_id.pricelist_id.id
             ):
-                price_unit = pack_line.product_id.price
+                price_unit = pack_line.product_id._get_contextual_price()
                 quantity = pack_line.quantity
                 vals = {
                     "order_line_id": self.id,
