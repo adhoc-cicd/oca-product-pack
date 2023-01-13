@@ -29,7 +29,9 @@ class SaleOrderLinePackLine(models.Model):
     @api.onchange("product_id")
     def onchange_product_id(self):
         for line in self:
-            line.price_unit = line.product_id._get_contextual_price() if line.product_id else 0.0
+            line.price_unit = (
+                line.product_id._get_contextual_price() if line.product_id else 0.0
+            )
 
     @api.depends("price_unit", "product_uom_qty")
     def _compute_price_subtotal(self):
