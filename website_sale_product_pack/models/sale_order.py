@@ -31,7 +31,7 @@ class SaleOrder(models.Model):
     @api.depends("order_line.product_uom_qty", "order_line.product_id")
     def _compute_cart_info(self):
         """We only want to count the main pack line, not the component lines"""
-        super()._compute_cart_info()
+        res = super()._compute_cart_info()
         for order in self:
             order.cart_quantity = int(
                 sum(
@@ -40,6 +40,7 @@ class SaleOrder(models.Model):
                     ).mapped("product_uom_qty")
                 )
             )
+        return res
 
     def _website_product_id_change(self, order_id, product_id, qty=0):
         """In the final checkout step, we could miss the component discount as the
