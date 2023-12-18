@@ -75,12 +75,16 @@ Authors
 Contributors
 ------------
 
--  `Tecnativa <https://www.tecnativa.com>`__:
+- `Tecnativa <https://www.tecnativa.com>`__:
 
-   -  Ernesto Tejeda
-   -  Pedro M. Baeza
-   -  Sergio Teruel
-   -  João Marques
+  - Ernesto Tejeda
+  - Pedro M. Baeza
+  - Sergio Teruel
+  - João Marques
+
+- `ADHOC SA <https://www.adhoc.com.ar>`__:
+
+  - Bruno Zanotti
 
 Maintainers
 -----------
