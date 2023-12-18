@@ -4,7 +4,7 @@
 
 import math
 
-from odoo import models
+from odoo import api, models
 
 
 class ProductProduct(models.Model):
@@ -13,10 +13,10 @@ class ProductProduct(models.Model):
     def _compute_quantities_dict(
         self, lot_id, owner_id, package_id, from_date=False, to_date=False
     ):
-        res = super()._compute_quantities_dict(
+        packs = self.filtered("pack_ok")
+        res = super(ProductProduct, self - packs)._compute_quantities_dict(
             lot_id, owner_id, package_id, from_date=from_date, to_date=to_date
         )
-        packs = self.filtered("pack_ok")
         for product in packs.with_context(prefetch_fields=False):
             pack_qty_available = []
             pack_virtual_available = []
@@ -48,6 +48,11 @@ class ProductProduct(models.Model):
             }
         return res
 
+    @api.depends(
+        "pack_line_ids.product_id.stock_move_ids.product_qty",
+        "pack_line_ids.product_id.stock_move_ids.state",
+        "pack_line_ids.product_id.stock_move_ids.quantity",
+    )
     def _compute_quantities(self):
         """In v13 Odoo introduces a filter for products not services.
         To keep how it was working on v12 we try to get stock for
@@ -60,16 +65,20 @@ class ProductProduct(models.Model):
             ProductProduct, self - service_pack_products
         )._compute_quantities()
         res = service_pack_products._compute_quantities_dict(
-            self._context.get("lot_id"),
-            self._context.get("owner_id"),
-            self._context.get("package_id"),
-            self._context.get("from_date"),
-            self._context.get("to_date"),
+            self.env.context.get("lot_id"),
+            self.env.context.get("owner_id"),
+            self.env.context.get("package_id"),
+            self.env.context.get("from_date"),
+            self.env.context.get("to_date"),
         )
         for product in service_pack_products:
-            product.qty_available = res[product.id]["qty_available"]
-            product.incoming_qty = res[product.id]["incoming_qty"]
-            product.outgoing_qty = res[product.id]["outgoing_qty"]
-            product.virtual_available = res[product.id]["virtual_available"]
-            product.free_qty = res[product.id]["free_qty"]
+            product.update(
+                {
+                    "qty_available": res[product.id]["qty_available"],
+                    "incoming_qty": res[product.id]["incoming_qty"],
+                    "outgoing_qty": res[product.id]["outgoing_qty"],
+                    "virtual_available": res[product.id]["virtual_available"],
+                    "free_qty": res[product.id]["free_qty"],
+                }
+            )
         return result
