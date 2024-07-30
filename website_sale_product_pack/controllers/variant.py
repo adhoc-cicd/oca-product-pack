@@ -1,10 +1,10 @@
-from odoo import http
+from odoo.http import request, route
 
 from odoo.addons.website_sale.controllers.variant import WebsiteSaleVariantController
 
 
 class WebsiteSaleVariantController(WebsiteSaleVariantController):
-    @http.route(
+    @route(
         "/website_sale/get_combination_info",
         type="json",
         auth="public",
@@ -18,17 +18,14 @@ class WebsiteSaleVariantController(WebsiteSaleVariantController):
         combination,
         add_qty,
         parent_combination=None,
-        **kw,
+        **kwargs,
     ):
-        if "context" in kw:
-            kw["context"].update({"whole_pack_price": True})
-        else:
-            kw["context"] = {"whole_pack_price": True}
+        request.update_context(whole_pack_price=True)
         return super().get_combination_info_website(
             product_template_id,
             product_id,
             combination,
             add_qty,
             parent_combination=parent_combination,
-            **kw,
+            **kwargs,
         )
