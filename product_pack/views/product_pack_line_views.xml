@@ -14,14 +14,14 @@
             </form>
         </field>
     </record>
-    <record id="product_pack_line_tree" model="ir.ui.view">
-        <field name="name">product.pack.line.tree</field>
+    <record id="product_pack_line_list" model="ir.ui.view">
+        <field name="name">product.pack.line.list</field>
         <field name="model">product.pack.line</field>
         <field name="arch" type="xml">
-            <tree editable="bottom">
+            <list editable="bottom">
                 <field name="product_id" />
                 <field name="quantity" />
-            </tree>
+            </list>
         </field>
     </record>
 </odoo>
