@@ -41,8 +41,6 @@ class ProductProduct(models.Model):
         if uom:
             uom = self.env["uom.uom"].browse([uom])
         for product in packs:
-            # NOTE: This exception is to avoid adding the list price of the packs
-            # "totalized" and "non detailed". Should be removed to solve the issue #169.
             if (
                 product.pack_type == "non_detailed"
                 or product.pack_component_price == "totalized"
