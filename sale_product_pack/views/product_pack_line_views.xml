@@ -8,23 +8,17 @@
         <field name="inherit_id" ref="product_pack.product_pack_line_form" />
         <field name="arch" type="xml">
             <field name="quantity" position="after">
-                <field
-                    name="sale_discount"
-                    groups="product.group_discount_per_so_line"
-                />
+                <field name="sale_discount" groups="sale.group_discount_per_so_line" />
             </field>
         </field>
     </record>
-    <record id="product_pack_line_tree" model="ir.ui.view">
-        <field name="name">product.pack.line.sale.tree</field>
+    <record id="product_pack_line_list" model="ir.ui.view">
+        <field name="name">product.pack.line.sale.list</field>
         <field name="model">product.pack.line</field>
-        <field name="inherit_id" ref="product_pack.product_pack_line_tree" />
+        <field name="inherit_id" ref="product_pack.product_pack_line_list" />
         <field name="arch" type="xml">
             <field name="quantity" position="after">
-                <field
-                    name="sale_discount"
-                    groups="product.group_discount_per_so_line"
-                />
+                <field name="sale_discount" groups="sale.group_discount_per_so_line" />
             </field>
         </field>
     </record>
@@ -33,7 +27,7 @@
         <field name="inherit_id" ref="sale.view_order_form" />
         <field name="arch" type="xml">
             <xpath
-                expr="//field[@name='order_line']/tree//field[@name='price_subtotal']"
+                expr="//field[@name='order_line']/list//field[@name='price_subtotal']"
                 position="after"
             >
                 <field name="pack_modifiable" column_invisible="True" />
