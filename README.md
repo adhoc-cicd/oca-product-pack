@@ -23,7 +23,7 @@ addon | version | maintainers | summary
 --- | --- | --- | ---
 [product_pack](product_pack/) | 17.0.2.0.0 | [![ernestotejeda](https://github.com/ernestotejeda.png?size=30px)](https://github.com/ernestotejeda) | This module allows you to set a product as a Pack
 [sale_product_pack](sale_product_pack/) | 17.0.2.0.0 | [![victoralmau](https://github.com/victoralmau.png?size=30px)](https://github.com/victoralmau) | This module allows you to sell product packs
-[website_sale_product_pack](website_sale_product_pack/) | 17.0.2.0.0 |  | Compatibility module of product pack with e-commerce
+[website_sale_product_pack](website_sale_product_pack/) | 17.0.2.0.1 |  | Compatibility module of product pack with e-commerce
 
 [//]: # (end addons)
 
