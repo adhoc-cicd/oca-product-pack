@@ -17,38 +17,44 @@ class TestStockProductPack(TransactionCase):
         category_all_id = cls.env.ref("product.product_category_all").id
         cls.product_obj = cls.env["product.product"]
         cls.stock_rule_obj = cls.env["stock.rule"]
+        # The model stock doesn't add anymore the 'product'
+        # selection to the product type.
+        # Thus the type is changed to 'consu'
         component_1 = cls.product_obj.create(
             {
                 "name": "Component 1",
-                "detailed_type": "product",
+                "type": "consu",
+                "is_storable": True,
                 "categ_id": category_all_id,
             }
         )
         component_2 = cls.product_obj.create(
             {
                 "name": "Component 2",
-                "detailed_type": "product",
+                "type": "consu",
+                "is_storable": True,
                 "categ_id": category_all_id,
             }
         )
         component_3 = cls.product_obj.create(
             {
                 "name": "Component 3",
-                "detailed_type": "service",
+                "type": "service",
                 "categ_id": category_all_id,
             }
         )
         component_4 = cls.product_obj.create(
             {
                 "name": "Component 4",
-                "detailed_type": "consu",
+                "type": "consu",
+                "is_storable": True,
                 "categ_id": category_all_id,
             }
         )
         cls.pack_dc = cls.product_obj.create(
             {
                 "name": "Pack",
-                "detailed_type": "product",
+                "type": "consu",
                 "pack_ok": True,
                 "pack_type": "detailed",
                 "pack_component_price": "detailed",
@@ -94,7 +100,7 @@ class TestStockProductPack(TransactionCase):
         cls.pack_dc_with_dm = cls.product_obj.create(
             {
                 "name": "Pack With storeable and not move product",
-                "detailed_type": "product",
+                "type": "consu",
                 "pack_ok": True,
                 "dont_create_move": True,
                 "pack_type": "detailed",
@@ -161,6 +167,18 @@ class TestStockProductPack(TransactionCase):
                             "location_dest_id": location_dest_id,
                         },
                     ),
+                    (
+                        0,
+                        0,
+                        {
+                            "name": "incoming_move_test_03",
+                            "product_id": components[3].id,
+                            "product_uom_qty": 9,
+                            "product_uom": components[3].uom_id.id,
+                            "location_id": location_id,
+                            "location_dest_id": location_dest_id,
+                        },
+                    ),
                 ],
             }
         )
@@ -186,7 +204,7 @@ class TestStockProductPack(TransactionCase):
         def create_orderpoint(product, qty_min, qty_max, location, group):
             return self.env["stock.warehouse.orderpoint"].create(
                 {
-                    "name": "OP/%s" % product.name,
+                    "name": f"OP/{product.name}",
                     "product_id": product.id,
                     "product_min_qty": qty_min,
                     "product_max_qty": qty_max,
@@ -203,7 +221,7 @@ class TestStockProductPack(TransactionCase):
             self.env.ref("stock.stock_location_stock"),
             pg,
         )
-        self.env["stock.scheduler.compute"].create({}).procure_calculation()
+        # self.env["stock.scheduler.compute"].create({}).procure_calculation()
         picking_ids = self.env["stock.picking"].search([("group_id", "=", pg.id)])
         # we need to ensure that only the compents of the packs are in the moves.
         self.assertFalse(self.pack_dc_with_dm in picking_ids.move_ids.product_id)
