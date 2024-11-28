@@ -60,7 +60,4 @@ class SaleOrder(models.Model):
 
     def _get_update_prices_lines(self):
         res = super()._get_update_prices_lines()
-        return res.filtered(
-            lambda line: not line.pack_parent_line_id
-            or line.pack_parent_line_id.pack_component_price == "detailed"
-        )
+        return res.filtered(lambda line: not line.pack_parent_line_id)
