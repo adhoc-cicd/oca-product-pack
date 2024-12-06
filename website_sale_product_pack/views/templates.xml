@@ -43,7 +43,9 @@
         </xpath>
         <xpath expr="//h6[@t-field='line.name_short']" position="after">
             <t t-if="line.pack_parent_line_id">
-                <span>&#8627; </span>
+                <span>
+                    &#8627;
+                </span>
                 <em t-field="line.name_short" />
             </t>
         </xpath>
@@ -62,7 +64,9 @@
         </xpath>
         <xpath expr="//t[@t-out='int(line.product_uom_qty)']" position="before">
             <t t-if="line.pack_parent_line_id">
-                <span>&#8627; </span>
+                <span>
+                    &#8627;
+                </span>
             </t>
         </xpath>
         <xpath
@@ -80,8 +84,7 @@
             <td
                 t-attf-class="#{o_cart_sum_padding_top} td-price pe-0 text-end"
                 name="website_sale_cart_summary_line_price"
-            >
-            </td>
+            />
         </xpath>
     </template>
     <template id="product_price" inherit_id="website_sale.product">
