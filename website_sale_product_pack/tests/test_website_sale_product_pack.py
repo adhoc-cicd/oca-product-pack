@@ -6,39 +6,38 @@ from odoo.tests.common import HttpCase, tagged
 
 @tagged("post_install", "-at_install")
 class WebsiteSaleHttpCase(HttpCase):
-    def setUp(self):
-        super().setUp()
-        self.user_portal = self.env.ref("base.demo_user0")
-        self.product_pdc = self.env.ref(
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user_portal = cls.env.ref("base.demo_user0")
+        cls.product_pdc = cls.env.ref(
             "product_pack.product_pack_cpu_detailed_components"
         )
-        self.product_pdi = self.env.ref(
-            "product_pack.product_pack_cpu_detailed_ignored"
-        )
-        self.product_pdt = self.env.ref(
+        cls.product_pdi = cls.env.ref("product_pack.product_pack_cpu_detailed_ignored")
+        cls.product_pdt = cls.env.ref(
             "product_pack.product_pack_cpu_detailed_totalized"
         )
-        self.product_pnd = self.env.ref("product_pack.product_pack_cpu_non_detailed")
-        self.packs = (
-            self.product_pdc + self.product_pdi + self.product_pdt + self.product_pnd
+        cls.product_pnd = cls.env.ref("product_pack.product_pack_cpu_non_detailed")
+        cls.packs = (
+            cls.product_pdc + cls.product_pdi + cls.product_pdt + cls.product_pnd
         )
         # Publish the products components
-        self.packs.mapped("pack_line_ids.product_id").write({"is_published": True})
+        cls.packs.mapped("pack_line_ids.product_id").write({"is_published": True})
         # Publish the products and put them in the first results
-        self.packs.write({"is_published": True, "website_sequence": 0})
+        cls.packs.write({"is_published": True, "website_sequence": 0})
         # Create and select a specific pricelist for avoiding problems in integrated
         # environments where the default pricelist currency has been changed
-        website = self.env["website"].get_current_website()
-        pricelist = self.env["product.pricelist"].create(
+        website = cls.env["website"].get_current_website()
+        pricelist = cls.env["product.pricelist"].create(
             {
                 "name": "website_sale_product_pack public",
                 "currency_id": website.user_id.company_id.currency_id.id,
                 "selectable": True,
             }
         )
-        self.user_portal.property_product_pricelist = pricelist
+        cls.user_portal.property_product_pricelist = pricelist
         website.user_id.property_product_pricelist = pricelist
-        admin = self.env.ref("base.user_admin")
+        admin = cls.env.ref("base.user_admin")
         admin.property_product_pricelist = pricelist
 
     def _get_component_prices_sum(self, product_pack):
