@@ -48,3 +48,36 @@ class ProductTemplate(models.Model):
                         "pack_parents": ", ".join(published.mapped("name")),
                     }
                 )
+
+    def _get_additionnal_combination_info(
+        self, product_or_template, quantity, date, website
+    ):
+        """Override to add the information about renting for rental products"""
+        res = super()._get_additionnal_combination_info(
+            product_or_template, quantity, date, website
+        )
+
+        if not product_or_template.pack_ok:
+            return res
+
+        currency = website.currency_id
+        pricelist = website.pricelist_id
+        res["price"] = pricelist.with_context(whole_pack_price=True)._get_product_price(
+            product=product_or_template,
+            quantity=quantity,
+            currency=currency,
+        )
+
+        return res
+
+    def _get_sales_prices(self, website):
+        prices = super()._get_sales_prices(website)
+        pricelist = website.pricelist_id
+
+        for template in self:
+            if not template.pack_ok:
+                continue
+            prices[template.id]["price_reduce"] = pricelist.with_context(
+                whole_pack_price=True
+            )._get_product_price(product=template, quantity=1.0)
+        return prices
