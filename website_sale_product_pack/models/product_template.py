@@ -48,3 +48,57 @@ class ProductTemplate(models.Model):
                         "pack_parents": ", ".join(published.mapped("name")),
                     }
                 )
+
+    def _get_combination_info(
+        self,
+        combination=False,
+        product_id=False,
+        add_qty=1.0,
+        parent_combination=False,
+        only_template=False,
+    ):
+        """Override to add the information about renting for rental products"""
+        return super(
+            ProductTemplate, self.with_context(whole_pack_price=True)
+        )._get_combination_info(
+            combination=combination,
+            product_id=product_id,
+            add_qty=add_qty,
+            parent_combination=parent_combination,
+            only_template=only_template,
+        )
+
+    def _get_additionnal_combination_info(
+        self, product_or_template, quantity, date, website
+    ):
+        """Override to add the information about renting for rental products"""
+        res = super()._get_additionnal_combination_info(
+            product_or_template, quantity, date, website
+        )
+
+        if product_or_template.pack_ok:
+            currency = website.currency_id
+            pricelist = website.pricelist_id
+            res["price"] = pricelist.with_context(
+                whole_pack_price=True
+            )._get_product_price(
+                product=product_or_template,
+                quantity=quantity,
+                currency=currency,
+            )
+
+        return res
+
+    def _get_sales_prices(self, website):
+        """Override to add the price of the pack itself"""
+        packs, no_packs = self.with_context(whole_pack_price=True).split_pack_products()
+        prices = super(ProductTemplate, no_packs)._get_sales_prices(website)
+        if packs:
+            pricelist = website.pricelist_id
+            for pack in packs:
+                prices[pack.id] = {
+                    "price_reduce": pricelist.with_context(
+                        whole_pack_price=True
+                    )._get_product_price(product=pack, quantity=1.0)
+                }
+        return prices
