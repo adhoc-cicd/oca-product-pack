@@ -11,7 +11,7 @@
                 class="js_quantity text-muted"
                 t-att-data-line-id="line.id"
                 t-att-data-product-id="line.product_id.id"
-                t-esc="int(line.product_uom_qty)"
+                t-out="int(line.product_uom_qty)"
             />
         </xpath>
         <!-- We don't want to allow to delete pack components -->
@@ -29,7 +29,7 @@
                 line.pack_parent_line_id
             </attribute>
         </xpath>
-        <xpath expr="//div[@t-else='']" position="attributes">
+        <xpath expr="//div[@t-field='line.product_id.image_128']" position="attributes">
             <attribute
                 name="t-if"
             >line.product_id.image_128 and not line.pack_parent_line_id</attribute>
