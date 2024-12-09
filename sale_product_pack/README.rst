@@ -59,11 +59,11 @@ To use this module, you need to:
 Known issues / Roadmap
 ======================
 
-- If this module is installed and stock module is installed too, when
-  you create a Sale order for a *Non detailed* Pack and you confirm it,
-  a *Stock picking* is not created with the storable components of that
-  Pack. So, add a new module called *sale_stock_product_pack* that adds
-  that feature.
+-  If this module is installed and stock module is installed too, when
+   you create a Sale order for a *Non detailed* Pack and you confirm it,
+   a *Stock picking* is not created with the storable components of that
+   Pack. So, add a new module called *sale_stock_product_pack* that adds
+   that feature.
 
 Bug Tracker
 ===========
@@ -88,28 +88,28 @@ Authors
 Contributors
 ------------
 
-- `Tecnativa <https://www.tecnativa.com>`__:
+-  `Tecnativa <https://www.tecnativa.com>`__:
 
-  - Ernesto Tejeda
-  - Pedro M. Baeza
+   -  Ernesto Tejeda
+   -  Pedro M. Baeza
 
-- `Akretion <https://akretion.com>`__:
+-  `Akretion <https://akretion.com>`__:
 
-  - Raphaël Reverdy
+   -  Raphaël Reverdy
 
-- `Open Source Integrators <https://opensourceintegrators.eu>`__:
+-  `Open Source Integrators <https://opensourceintegrators.eu>`__:
 
-  - Daniel Reis <dreis@opensourceintegrators.com>
+   -  Daniel Reis <dreis@opensourceintegrators.com>
 
-- `Acsone <https://www.acsone.eu/>`__:
+-  `Acsone <https://www.acsone.eu/>`__:
 
-  - Maxime Franco
+   -  Maxime Franco
 
-- `ADHOC SA <https://www.adhoc.com.ar>`__:
+-  `ADHOC SA <https://www.adhoc.com.ar>`__:
 
-  - Bruno Zanotti
-  - Augusto Weiss
-  - Nicolas Col
+   -  Bruno Zanotti
+   -  Augusto Weiss
+   -  Nicolas Col
 
 Maintainers
 -----------
