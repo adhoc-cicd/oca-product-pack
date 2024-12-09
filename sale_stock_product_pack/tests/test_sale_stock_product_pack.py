@@ -10,7 +10,7 @@ class TestSaleStockProductPack(TransactionCase):
         cls.product_pack = cls.env.ref(
             "product_pack.product_pack_cpu_detailed_components"
         )
-        cls.product_pack.type = "product"
+        cls.product_pack.type = "consu"
         cls.product_pack.invoice_policy = "delivery"
         cls.product_pack.pack_line_ids.product_id.invoice_policy = "delivery"
         sale_form = Form(cls.env["sale.order"])
