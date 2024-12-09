@@ -1,6 +1,7 @@
 # Copyright 2019 Tecnativa - Ernesto Tejeda
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
+
 from odoo.addons.base.tests.common import BaseCommon
 
 
@@ -10,7 +11,7 @@ class TestSaleProductPack(BaseCommon):
         super().setUpClass()
         pricelist = cls.env["product.pricelist"].create(
             {
-                "name": "Test",
+                "name": "Default",
                 "company_id": cls.env.company.id,
                 "item_ids": [
                     (
@@ -27,7 +28,7 @@ class TestSaleProductPack(BaseCommon):
         )
         cls.discount_pricelist = cls.env["product.pricelist"].create(
             {
-                "name": "Discount",
+                "name": "Discount (10%)",
                 "company_id": cls.env.company.id,
                 "item_ids": [
                     (
@@ -37,6 +38,25 @@ class TestSaleProductPack(BaseCommon):
                             "applied_on": "3_global",
                             "compute_price": "percentage",
                             "percent_price": 10,
+                        },
+                    )
+                ],
+            }
+        )
+        cls.discount_based_on_pricelist = cls.env["product.pricelist"].create(
+            {
+                "name": "Discount (5%) based on Pricelist Discount(10%)",
+                "company_id": cls.env.company.id,
+                "item_ids": [
+                    (
+                        0,
+                        0,
+                        {
+                            "applied_on": "3_global",
+                            "compute_price": "percentage",
+                            "percent_price": 5,
+                            "base": "pricelist",
+                            "base_pricelist_id": cls.discount_pricelist.id,
                         },
                     )
                 ],
@@ -100,6 +120,14 @@ class TestSaleProductPack(BaseCommon):
             (self.sale_order.order_line - line).mapped("price_subtotal"),
             [1579.5, 20.25, 796.5],
         )
+        # Update pricelist with a pricelist based on pricelist
+        self.sale_order.pricelist_id = self.discount_based_on_pricelist
+        self.sale_order.action_update_prices()
+        self.assertAlmostEqual(line.price_subtotal, 26.29)
+        self.assertEqual(
+            (self.sale_order.order_line - line).mapped("price_subtotal"),
+            [1500.53, 19.24, 756.68],
+        )
 
     def test_create_ignored_price_order_line(self):
         product_tp = self.env.ref("product_pack.product_pack_cpu_detailed_ignored")
@@ -131,6 +159,13 @@ class TestSaleProductPack(BaseCommon):
         self.sale_order.pricelist_id = self.discount_pricelist
         self.sale_order.action_update_prices()
         self.assertAlmostEqual(line.price_subtotal, 27.68)
+        self.assertEqual(
+            (self.sale_order.order_line - line).mapped("price_subtotal"), [0, 0, 0]
+        )
+        # Update pricelist with a pricelist based on pricelist
+        self.sale_order.pricelist_id = self.discount_based_on_pricelist
+        self.sale_order.action_update_prices()
+        self.assertAlmostEqual(line.price_subtotal, 26.29)
         self.assertEqual(
             (self.sale_order.order_line - line).mapped("price_subtotal"), [0, 0, 0]
         )
@@ -168,6 +203,13 @@ class TestSaleProductPack(BaseCommon):
         self.assertEqual(
             (self.sale_order.order_line - line).mapped("price_subtotal"), [0, 0, 0]
         )
+        # Update pricelist with a pricelist based on pricelist
+        self.sale_order.pricelist_id = self.discount_based_on_pricelist
+        self.sale_order.action_update_prices()
+        self.assertAlmostEqual(line.price_subtotal, 2276.44)
+        self.assertEqual(
+            (self.sale_order.order_line - line).mapped("price_subtotal"), [0, 0, 0]
+        )
 
     def test_create_non_detailed_price_order_line(self):
         product_ndtp = self.env.ref("product_pack.product_pack_cpu_non_detailed")
@@ -190,6 +232,10 @@ class TestSaleProductPack(BaseCommon):
         self.sale_order.pricelist_id = self.discount_pricelist
         self.sale_order.action_update_prices()
         self.assertAlmostEqual(line.price_subtotal, 2396.25)
+        # Update pricelist with a pricelist based on pricelist
+        self.sale_order.pricelist_id = self.discount_based_on_pricelist
+        self.sale_order.action_update_prices()
+        self.assertAlmostEqual(line.price_subtotal, 2276.44)
 
     def test_update_qty(self):
         # Ensure the quantities are always updated
