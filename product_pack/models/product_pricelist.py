@@ -11,6 +11,10 @@ class Pricelist(models.Model):
                   considering pricelist rules
         """
         self and self.ensure_one()
+        if len(args) >= 2 and isinstance(args[1], type(self.env["res.currency"])):
+            kwargs["currency"] = args[1]
+            args = (args[0], None) + args[2:]
+
         if product._is_pack_to_be_handled():
             # NOTE: This exception is to avoid adding the list price of the packs
             # "totalized" and "non detailed". Should be removed to solve the issue #169.
