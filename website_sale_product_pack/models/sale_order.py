@@ -6,27 +6,40 @@ from odoo import api, models
 class SaleOrder(models.Model):
     _inherit = "sale.order"
 
-    def _cart_update(self, *args, **kwargs):
+    def _cart_update_line_quantity(
+        self, line_id: int, quantity: float, **kwargs
+    ) -> dict:
         """We need to keep the discount defined on the components when checking out.
         Also when a line comes from a totalized pack, we should flag it to avoid
         changing it's price in a cart step."""
-        line_id = kwargs.get("line_id")
-        if line_id:
-            line = self.env["sale.order.line"].browse(line_id)
-            if line and line.pack_parent_line_id:
-                pack = line.pack_parent_line_id.product_id
-                detailed_totalized_pack = (
-                    pack.pack_type == "detailed"
-                    and pack.pack_component_price in {"totalized", "ignored"}
-                )
-                return super(
-                    SaleOrder,
-                    self.with_context(
-                        pack_discount=line.discount,
-                        detailed_totalized_pack=detailed_totalized_pack,
-                    ),
-                )._cart_update(*args, **kwargs)
-        return super()._cart_update(*args, **kwargs)
+        line = self.env["sale.order.line"].browse(line_id)
+        if line and line.pack_parent_line_id:
+            pack = line.pack_parent_line_id.product_id
+            detailed_totalized_pack = (
+                pack.pack_type == "detailed"
+                and pack.pack_component_price in {"totalized", "ignored"}
+            )
+            return super(
+                SaleOrder,
+                self.with_context(
+                    pack_discount=line.discount,
+                    detailed_totalized_pack=detailed_totalized_pack,
+                ),
+            )._cart_update_line_quantity(line_id, quantity, **kwargs)
+        return super()._cart_update_line_quantity(line_id, quantity, **kwargs)
+
+    def _prepare_order_line_update_values(self, order_line, quantity, **kwargs):
+        """Preserve pack discount and handle detailed totalized packs"""
+        values = super()._prepare_order_line_update_values(
+            order_line, quantity, **kwargs
+        )
+
+        # If we have pack_discount in context, preserve it
+        pack_discount = self.env.context.get("pack_discount")
+        if pack_discount is not None and order_line.pack_parent_line_id:
+            values["discount"] = pack_discount
+
+        return values
 
     @api.depends("order_line.product_uom_qty", "order_line.product_id")
     def _compute_cart_info(self):
