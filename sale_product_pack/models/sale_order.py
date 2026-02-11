@@ -9,11 +9,13 @@ class SaleOrder(models.Model):
 
     def copy(self, default=None):
         sale_copy = super().copy(default)
-        # we unlink pack lines that should not be copied
-        pack_copied_lines = sale_copy.order_line.filtered(
-            lambda line: line.pack_parent_line_id.order_id == self
-        )
-        pack_copied_lines.unlink()
+        for record in self:
+            # we unlink pack lines that should not be copied
+            pack_copied_lines = sale_copy.order_line.filtered(
+                lambda x, order=record: x.pack_parent_line_id.order_id == order
+            )
+            if pack_copied_lines:
+                pack_copied_lines.unlink()
         return sale_copy
 
     @api.onchange("order_line")
