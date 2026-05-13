@@ -82,6 +82,8 @@ class SaleOrderLine(models.Model):
         Transform non_detailed pack with pack_modifiable into editable
         component lines while keeping the original pack line as a visual
         header with collapse behavior.
+
+        Nested packs in components are not expanded to avoid recursive expansions.
         """
         self.ensure_one()
 
@@ -93,11 +95,7 @@ class SaleOrderLine(models.Model):
         ):
             return self
 
-        # Keep nested packs unexpanded to avoid recursive/non-intuitive expansions.
         pack_lines = self.product_id.get_pack_lines()
-        if any(line.product_id.pack_ok for line in pack_lines):
-            return self
-
         order = self.order_id
         base_sequence = self.sequence
 
@@ -124,7 +122,15 @@ class SaleOrderLine(models.Model):
                     "pack_depth": 0,
                 }
             )
-            created_lines += self.env["sale.order.line"].create(component_vals)
+            # Skip expansion for nested packs to avoid recursive expansions
+            if pack_line.product_id.pack_ok:
+                created_lines += (
+                    self.env["sale.order.line"]
+                    .with_context(skip_non_detailed_pack_transform=True)
+                    .create(component_vals)
+                )
+            else:
+                created_lines += self.env["sale.order.line"].create(component_vals)
         return created_lines
 
     def _sync_visual_header_component_qty(self):

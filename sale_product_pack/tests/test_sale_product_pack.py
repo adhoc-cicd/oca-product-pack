@@ -195,9 +195,22 @@ class TestSaleProductPack(TestSaleProductPackBase):
             Command.create({"product_id": self.component2.id, "quantity": 1}),
         ]
 
-        line = self._add_so_line()
+        self._add_so_line()
 
-        # Must remain as a single non-expanded pack line.
-        self.assertEqual(len(self.sale_order.order_line), 1)
-        self.assertEqual(self.sale_order.order_line, line)
-        self.assertFalse(line.pack_is_visual_header)
+        # Pack should expand: header line + nested_pack line + component2 line = 3 lines
+        self.assertEqual(len(self.sale_order.order_line), 3)
+
+        # First line should be the visual header
+        header_line = self.sale_order.order_line[0]
+        self.assertEqual(header_line.product_id, self.pack)
+        self.assertTrue(header_line.pack_is_visual_header)
+
+        # Second line should be the nested pack (not expanded)
+        nested_line = self.sale_order.order_line[1]
+        self.assertEqual(nested_line.product_id, nested_pack)
+        self.assertFalse(nested_line.pack_is_visual_header)
+
+        # Third line should be the regular component
+        component_line = self.sale_order.order_line[2]
+        self.assertEqual(component_line.product_id, self.component2)
+        self.assertFalse(component_line.pack_is_visual_header)
