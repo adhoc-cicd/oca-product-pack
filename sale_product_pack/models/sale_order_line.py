@@ -169,7 +169,7 @@ class SaleOrderLine(models.Model):
                     last_sub = line
                 elif line in sale_order_lines:
                     line.parent_id = last_sub or last_section
-            return res
+        return res
 
     @api.model_create_multi
     def create(self, vals_list):
