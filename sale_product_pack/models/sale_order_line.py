@@ -99,6 +99,16 @@ class SaleOrderLine(models.Model):
         order = self.order_id
         base_sequence = self.sequence
 
+        # Keep inserted component lines contiguous under the visual header.
+        # Shift the existing trailing lines to avoid sequence collisions.
+        if pack_lines:
+            shift = len(pack_lines)
+            for line in order.order_line.filtered(
+                lambda order_line: order_line.id != self.id
+                and order_line.sequence > base_sequence
+            ).sorted("sequence", reverse=True):
+                line.sequence += shift
+
         # Keep the pack line and mark it as section-like visual header.
         self.write(
             {
