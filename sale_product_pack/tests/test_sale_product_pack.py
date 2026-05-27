@@ -2,6 +2,8 @@
 # Copyright 2025 Tecnativa - Pedro M. Baeza
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl.html).
 
+from unittest.mock import patch
+
 from odoo import Command
 
 from .common import TestSaleProductPackBase
@@ -147,30 +149,39 @@ class TestSaleProductPack(TestSaleProductPackBase):
         self.pack.pack_modifiable = True
         self._add_so_line()
         # After create, pack should be transformed into:
-        # 1 pack visual header + 2 component lines
-        self.assertEqual(len(self.sale_order.order_line), 3)
-        # First line should keep the pack product and behave as visual header
-        header_line = self.sale_order.order_line[0]
-        self.assertEqual(header_line.product_id, self.pack)
-        self.assertTrue(header_line.pack_is_visual_header)
-        self.assertTrue(header_line.collapse_composition)
-        self.assertAlmostEqual(header_line.price_subtotal, 0)
+        # 1 section line + 1 pack line + 2 component lines
+        ordered_lines = self.sale_order.order_line.sorted(
+            key=lambda line: (line.sequence, line.id)
+        )
+        self.assertEqual(len(ordered_lines), 4)
+        section_line = ordered_lines[0]
+        self.assertEqual(section_line.display_type, "line_section")
+        self.assertEqual(section_line.name, self.pack.display_name)
+        self.assertTrue(section_line.collapse_composition)
+        pack_line = ordered_lines[1]
+        self.assertEqual(pack_line.product_id, self.pack)
+        self.assertFalse(pack_line.display_type)
+        self.assertAlmostEqual(pack_line.price_subtotal, 70)
         # Next lines should be the components
-        self.assertEqual(self.sale_order.order_line[1].product_id, self.component1)
-        self.assertEqual(self.sale_order.order_line[2].product_id, self.component2)
+        self.assertEqual(ordered_lines[2].product_id, self.component1)
+        self.assertEqual(ordered_lines[3].product_id, self.component2)
         # Component lines should have proper quantities and prices
-        self.assertEqual(self.sale_order.order_line[1].product_uom_qty, 2)
-        self.assertEqual(self.sale_order.order_line[2].product_uom_qty, 1)
-        self.assertAlmostEqual(self.sale_order.order_line[1].price_unit, 20)
-        self.assertAlmostEqual(self.sale_order.order_line[2].price_unit, 30)
+        self.assertEqual(ordered_lines[2].product_uom_qty, 2)
+        self.assertEqual(ordered_lines[3].product_uom_qty, 1)
+        self.assertAlmostEqual(ordered_lines[2].price_unit, 20)
+        self.assertAlmostEqual(ordered_lines[3].price_unit, 30)
         # Lines should be editable (no pack_parent_line_id)
-        self.assertFalse(self.sale_order.order_line[1].pack_parent_line_id)
-        self.assertFalse(self.sale_order.order_line[2].pack_parent_line_id)
+        self.assertFalse(pack_line.pack_parent_line_id)
+        self.assertFalse(ordered_lines[2].pack_parent_line_id)
+        self.assertFalse(ordered_lines[3].pack_parent_line_id)
 
         # Updating the pack quantity should update component quantities.
-        header_line.product_uom_qty = 2
-        self.assertEqual(self.sale_order.order_line[1].product_uom_qty, 4)
-        self.assertEqual(self.sale_order.order_line[2].product_uom_qty, 2)
+        pack_line.product_uom_qty = 2
+        ordered_lines = self.sale_order.order_line.sorted(
+            key=lambda line: (line.sequence, line.id)
+        )
+        self.assertEqual(ordered_lines[2].product_uom_qty, 4)
+        self.assertEqual(ordered_lines[3].product_uom_qty, 2)
 
     def test_non_detailed_modifiable_pack_with_nested_pack_not_expanded(self):
         nested_pack = self.env["product.product"].create(
@@ -197,20 +208,58 @@ class TestSaleProductPack(TestSaleProductPackBase):
 
         self._add_so_line()
 
-        # Pack should expand: header line + nested_pack line + component2 line = 3 lines
-        self.assertEqual(len(self.sale_order.order_line), 3)
+        # Pack should expand: section + pack line + nested pack + component2.
+        ordered_lines = self.sale_order.order_line.sorted(
+            key=lambda line: (line.sequence, line.id)
+        )
+        self.assertEqual(len(ordered_lines), 4)
 
-        # First line should be the visual header
-        header_line = self.sale_order.order_line[0]
-        self.assertEqual(header_line.product_id, self.pack)
-        self.assertTrue(header_line.pack_is_visual_header)
+        # First line should be a standard Odoo section.
+        section_line = ordered_lines[0]
+        self.assertEqual(section_line.display_type, "line_section")
 
-        # Second line should be the nested pack (not expanded)
-        nested_line = self.sale_order.order_line[1]
+        # Second line should be the pack product.
+        pack_line = ordered_lines[1]
+        self.assertEqual(pack_line.product_id, self.pack)
+
+        # Third line should be the nested pack (not expanded)
+        nested_line = ordered_lines[2]
         self.assertEqual(nested_line.product_id, nested_pack)
-        self.assertFalse(nested_line.pack_is_visual_header)
 
-        # Third line should be the regular component
-        component_line = self.sale_order.order_line[2]
+        # Fourth line should be the regular component
+        component_line = ordered_lines[3]
         self.assertEqual(component_line.product_id, self.component2)
-        self.assertFalse(component_line.pack_is_visual_header)
+
+    def test_non_detailed_modifiable_pack_catalog_add_accumulates_without_section_dup(
+        self,
+    ):
+        self.pack.pack_type = "non_detailed"
+        self.pack.pack_modifiable = True
+
+        class DummyRequest:
+            @staticmethod
+            def update_context(**kwargs):
+                return kwargs
+
+        with patch("odoo.addons.sale.models.sale_order.request", DummyRequest()):
+            self.sale_order._update_order_line_info(self.pack.id, 1)
+            self.sale_order._update_order_line_info(self.pack.id, 2)
+
+        ordered_lines = self.sale_order.order_line.sorted(
+            key=lambda line: (line.sequence, line.id)
+        )
+        sections = ordered_lines.filtered(
+            lambda line: line.display_type == "line_section"
+        )
+        pack_lines = ordered_lines.filtered(
+            lambda line: not line.display_type and line.product_id == self.pack
+        )
+
+        self.assertEqual(len(sections), 1)
+        self.assertEqual(len(pack_lines), 1)
+        self.assertEqual(pack_lines.product_uom_qty, 2)
+
+        self.assertEqual(ordered_lines[2].product_id, self.component1)
+        self.assertEqual(ordered_lines[3].product_id, self.component2)
+        self.assertEqual(ordered_lines[2].product_uom_qty, 4)
+        self.assertEqual(ordered_lines[3].product_uom_qty, 2)

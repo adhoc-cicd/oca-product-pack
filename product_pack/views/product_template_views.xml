@@ -37,8 +37,8 @@
                             colspan="4"
                         >
                             <strong
-                        >Aviso:</strong> Los packs no detallados y modificables
-                            no son compatibles con eCommerce.
+                        >Aviso:</strong> En Ventas (backend), los packs no detallados y modificables se muestran agrupados.
+                            En eCommerce y POS se visualiza el detalle completo de componentes.
                         </div>
                     </group>
                 </page>

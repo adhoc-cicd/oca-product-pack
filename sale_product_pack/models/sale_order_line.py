@@ -8,10 +8,6 @@ class SaleOrderLine(models.Model):
     _inherit = "sale.order.line"
     _parent_name = "pack_parent_line_id"
 
-    pack_is_visual_header = fields.Boolean(
-        help="Whether this line acts as a section-like header for pack components."
-    )
-
     pack_type = fields.Selection(
         related="product_id.pack_type",
     )
@@ -80,8 +76,7 @@ class SaleOrderLine(models.Model):
     def action_transform_pack_to_lines(self):
         """
         Transform non_detailed pack with pack_modifiable into editable
-        component lines while keeping the original pack line as a visual
-        header with collapse behavior.
+        component lines grouped under a standard Odoo section.
 
         Nested packs in components are not expanded to avoid recursive expansions.
         """
@@ -91,7 +86,6 @@ class SaleOrderLine(models.Model):
             not self.product_id.pack_ok
             or self.pack_type != "non_detailed"
             or not self.product_id.pack_modifiable
-            or self.pack_is_visual_header
         ):
             return self
 
@@ -99,30 +93,36 @@ class SaleOrderLine(models.Model):
         order = self.order_id
         base_sequence = self.sequence
 
-        # Keep inserted component lines contiguous under the visual header.
+        # Keep inserted lines contiguous under the section.
         # Shift the existing trailing lines to avoid sequence collisions.
         if pack_lines:
-            shift = len(pack_lines)
+            shift = len(pack_lines) + 1
             for line in order.order_line.filtered(
                 lambda order_line: order_line.id != self.id
                 and order_line.sequence > base_sequence
             ).sorted("sequence", reverse=True):
                 line.sequence += shift
 
-        # Keep the pack line and mark it as section-like visual header.
-        self.write(
+        section_line = self.env["sale.order.line"].create(
             {
+                "order_id": order.id,
+                "display_type": "line_section",
                 "name": self.product_id.display_name,
-                "pack_is_visual_header": True,
+                "sequence": base_sequence,
                 "collapse_composition": True,
-                "price_unit": 0.0,
-                "discount": 0.0,
             }
         )
-        created_lines = self
+
+        # Keep the pack product as the first editable line under the section.
+        self.write(
+            {
+                "sequence": base_sequence + 1,
+            }
+        )
+        created_lines = section_line + self
 
         # Create editable component lines
-        for idx, pack_line in enumerate(pack_lines, start=1):
+        for idx, pack_line in enumerate(pack_lines, start=2):
             component_vals = pack_line.get_sale_order_line_vals(self, order)
             component_vals.update(
                 {
@@ -143,19 +143,34 @@ class SaleOrderLine(models.Model):
                 created_lines += self.env["sale.order.line"].create(component_vals)
         return created_lines
 
-    def _sync_visual_header_component_qty(self):
-        """Sync component quantities with the visual header pack quantity."""
+    def _get_non_detailed_pack_component_lines(self):
+        self.ensure_one()
+        component_lines = self.env["sale.order.line"]
+        collect = False
+        for line in self.order_id.order_line.sorted("sequence"):
+            if line == self:
+                collect = True
+                continue
+            if not collect:
+                continue
+            if line.display_type in ("line_section", "line_subsection"):
+                break
+            component_lines += line
+        return component_lines
+
+    def _sync_non_detailed_pack_component_qty(self):
+        """Sync component quantities with the pack product quantity."""
         self.ensure_one()
         if (
-            not self.pack_is_visual_header
+            self.display_type
             or not self.product_id.pack_ok
             or self.pack_type != "non_detailed"
             or not self.product_id.pack_modifiable
         ):
             return
 
-        components = self._get_section_lines().filtered(
-            lambda line: not line.display_type and not line.pack_is_visual_header
+        components = self._get_non_detailed_pack_component_lines().filtered(
+            lambda line: not line.display_type
         )
         for pack_line in self.product_id.get_pack_lines():
             expected_qty = pack_line.quantity * self.product_uom_qty
@@ -174,7 +189,7 @@ class SaleOrderLine(models.Model):
             last_section = False
             last_sub = False
             for line in order.order_line.sorted("sequence"):
-                if line.display_type == "line_section" or line.pack_is_visual_header:
+                if line.display_type == "line_section":
                     last_section = line
                     if line in sale_order_lines:
                         line.parent_id = False
@@ -229,7 +244,7 @@ class SaleOrderLine(models.Model):
             for record in self:
                 record.expand_pack_line(write=True)
                 if "product_uom_qty" in vals:
-                    record._sync_visual_header_component_qty()
+                    record._sync_non_detailed_pack_component_qty()
                 if (
                     "product_id" in vals
                     and record.product_id.pack_ok

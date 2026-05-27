@@ -77,7 +77,6 @@ class SaleOrder(models.Model):
         res = super()._get_update_prices_lines()
         return res.filtered(
             lambda line: not line.pack_parent_line_id
-            and not line.pack_is_visual_header
             or line.pack_parent_line_id.pack_component_price == "detailed"
         )
 
@@ -93,16 +92,37 @@ class SaleOrder(models.Model):
         )
         if not is_non_detailed_modifiable:
             return super()._update_order_line_info(product_id, quantity, **kwargs)
+
+        if not kwargs.get("section_id"):
+            existing_pack_lines = self.order_line.filtered(
+                lambda line: not line.display_type
+                and line.product_id.id == product_id
+                and line.product_id.pack_ok
+                and line.pack_type == "non_detailed"
+                and line.product_id.pack_modifiable
+            )
+            if existing_pack_lines:
+                # Catalog passes section_id=False by default. If the pack product
+                # already lives under a section, route the update to that section
+                # so quantity is updated instead of creating a duplicate group.
+                target_line = existing_pack_lines.sorted(
+                    key=lambda line: (line.sequence, line.id)
+                )[-1]
+                kwargs["section_id"] = target_line.get_parent_section_line().id
+
+        existing_line_ids = set(self.order_line.ids)
         price = super(
             SaleOrder, self.with_context(skip_non_detailed_pack_transform=True)
         )._update_order_line_info(product_id, quantity, **kwargs)
-        # Now transform any remaining non-detailed modifiable pack lines
+        # Transform only lines created by this operation. Existing transformed
+        # lines may only need quantity sync when the same product is added again.
+        new_line_ids = set(self.order_line.ids) - existing_line_ids
         pack_lines = self.order_line.filtered(
-            lambda line: line.product_id.id == product_id
+            lambda line: line.id in new_line_ids
+            and line.product_id.id == product_id
             and line.product_id.pack_ok
             and line.pack_type == "non_detailed"
             and line.product_id.pack_modifiable
-            and not line.pack_is_visual_header
         )
         for line in pack_lines:
             line.action_transform_pack_to_lines()
