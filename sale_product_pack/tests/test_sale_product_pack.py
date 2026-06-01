@@ -165,11 +165,13 @@ class TestSaleProductPack(TestSaleProductPackBase):
         # Next lines should be the components
         self.assertEqual(ordered_lines[2].product_id, self.component1)
         self.assertEqual(ordered_lines[3].product_id, self.component2)
-        # Component lines should have proper quantities and prices
+        # Component lines should have proper quantities; price is on the pack line.
         self.assertEqual(ordered_lines[2].product_uom_qty, 2)
         self.assertEqual(ordered_lines[3].product_uom_qty, 1)
-        self.assertAlmostEqual(ordered_lines[2].price_unit, 20)
-        self.assertAlmostEqual(ordered_lines[3].price_unit, 30)
+        self.assertAlmostEqual(ordered_lines[2].price_unit, 0)
+        self.assertAlmostEqual(ordered_lines[3].price_unit, 0)
+        # Subtotal equals the pack line price only — no double billing with components.
+        self.assertAlmostEqual(self.sale_order.amount_untaxed, 70)
         # Lines should be editable (no pack_parent_line_id)
         self.assertFalse(pack_line.pack_parent_line_id)
         self.assertFalse(ordered_lines[2].pack_parent_line_id)

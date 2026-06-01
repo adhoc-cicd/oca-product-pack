@@ -130,6 +130,8 @@ class SaleOrderLine(models.Model):
                     # Standalone editable lines for non-detailed modifiable packs.
                     "pack_parent_line_id": False,
                     "pack_depth": 0,
+                    # Price is on the pack product line; components are for tracking only.
+                    "price_unit": 0.0,
                 }
             )
             # Skip expansion for nested packs to avoid recursive expansions
@@ -179,28 +181,6 @@ class SaleOrderLine(models.Model):
             )[:1]
             if component_line:
                 component_line.product_uom_qty = expected_qty
-
-    def _compute_parent_id(self):
-        res = super()._compute_parent_id()
-        sale_order_lines = set(self)
-        for order, _lines in self.grouped("order_id").items():
-            if not order:
-                continue
-            last_section = False
-            last_sub = False
-            for line in order.order_line.sorted("sequence"):
-                if line.display_type == "line_section":
-                    last_section = line
-                    if line in sale_order_lines:
-                        line.parent_id = False
-                    last_sub = False
-                elif line.display_type == "line_subsection":
-                    if line in sale_order_lines:
-                        line.parent_id = last_section
-                    last_sub = line
-                elif line in sale_order_lines:
-                    line.parent_id = last_sub or last_section
-        return res
 
     @api.model_create_multi
     def create(self, vals_list):
