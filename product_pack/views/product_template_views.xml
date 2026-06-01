@@ -36,7 +36,8 @@
                             invisible="not (pack_type == 'non_detailed' and pack_modifiable)"
                             colspan="4"
                         >
-                            <strong>Note:</strong> In Sales (backend), non-detailed modifiable
+                            <strong
+                        >Note:</strong> In Sales (backend), non-detailed modifiable
                             packs are displayed grouped under a collapsible section.
                             In eCommerce and POS, the full component detail is shown.
                         </div>

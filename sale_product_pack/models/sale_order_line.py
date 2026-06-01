@@ -130,7 +130,7 @@ class SaleOrderLine(models.Model):
                     # Standalone editable lines for non-detailed modifiable packs.
                     "pack_parent_line_id": False,
                     "pack_depth": 0,
-                    # Price is on the pack product line; components are for tracking only.
+                    # Price lives on the pack line; components are for tracking only.
                     "price_unit": 0.0,
                 }
             )
