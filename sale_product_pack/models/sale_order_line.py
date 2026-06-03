@@ -130,8 +130,6 @@ class SaleOrderLine(models.Model):
                     # Standalone editable lines for non-detailed modifiable packs.
                     "pack_parent_line_id": False,
                     "pack_depth": 0,
-                    # Price lives on the pack line; components are for tracking only.
-                    "price_unit": 0.0,
                 }
             )
             # Skip expansion for nested packs to avoid recursive expansions
@@ -272,11 +270,24 @@ class SaleOrderLine(models.Model):
         :return: the product sales price in the order currency (without taxes)
         :rtype: float
         """
+        tmpl = self.product_id.product_tmpl_id
+        if (
+            tmpl.pack_ok
+            and tmpl.pack_type == "non_detailed"
+            and tmpl.pack_modifiable
+            and not self.display_type
+        ):
+            # Non-detailed modifiable pack expanded into standalone lines:
+            # the pack line shows only its own base price; each component
+            # carries its real price separately. Use pack_base_price_only to
+            # bypass the totalization logic in product_pricelist._get_product_price.
+            return self.order_id.pricelist_id.with_context(
+                pack_base_price_only=True
+            )._get_product_price(product=tmpl, quantity=1.0)
         price = super()._get_pricelist_price()
-
-        if self.product_id.product_tmpl_id._is_pack_to_be_handled():
+        if tmpl._is_pack_to_be_handled():
             price = self.order_id.pricelist_id._get_product_price(
-                product=self.product_id.product_tmpl_id, quantity=1.0
+                product=tmpl, quantity=1.0
             )
         return price
 

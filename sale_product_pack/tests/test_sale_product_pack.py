@@ -161,17 +161,20 @@ class TestSaleProductPack(TestSaleProductPackBase):
         pack_line = ordered_lines[1]
         self.assertEqual(pack_line.product_id, self.pack)
         self.assertFalse(pack_line.display_type)
-        self.assertAlmostEqual(pack_line.price_subtotal, 70)
+        # Pack line shows its own base price (list_price=10), not the totalized sum.
+        self.assertAlmostEqual(pack_line.price_subtotal, 10)
         # Next lines should be the components
         self.assertEqual(ordered_lines[2].product_id, self.component1)
         self.assertEqual(ordered_lines[3].product_id, self.component2)
-        # Component lines should have proper quantities; price is on the pack line.
+        # Component lines have their real unit prices; pack line keeps its base price.
         self.assertEqual(ordered_lines[2].product_uom_qty, 2)
         self.assertEqual(ordered_lines[3].product_uom_qty, 1)
-        self.assertAlmostEqual(ordered_lines[2].price_unit, 0)
-        self.assertAlmostEqual(ordered_lines[3].price_unit, 0)
-        # Subtotal equals the pack line price only — no double billing with components.
-        self.assertAlmostEqual(self.sale_order.amount_untaxed, 70)
+        self.assertAlmostEqual(ordered_lines[2].price_unit, 20)
+        self.assertAlmostEqual(ordered_lines[3].price_unit, 30)
+        self.assertAlmostEqual(ordered_lines[2].price_subtotal, 40)
+        self.assertAlmostEqual(ordered_lines[3].price_subtotal, 30)
+        # Total = base pack (10) + components (40 + 30) — no double billing.
+        self.assertAlmostEqual(self.sale_order.amount_untaxed, 80)
         # Lines should be editable (no pack_parent_line_id)
         self.assertFalse(pack_line.pack_parent_line_id)
         self.assertFalse(ordered_lines[2].pack_parent_line_id)
