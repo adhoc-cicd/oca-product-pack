@@ -188,6 +188,31 @@ class TestSaleProductPack(TestSaleProductPackBase):
         self.assertEqual(ordered_lines[2].product_uom_qty, 4)
         self.assertEqual(ordered_lines[3].product_uom_qty, 2)
 
+    def test_non_detailed_modifiable_pack_copy(self):
+        """Duplicating an order with a non-detailed modifiable pack."""
+        self.pack.pack_type = "non_detailed"
+        self.pack.pack_modifiable = True
+        self._add_so_line()
+
+        copied_order = self.sale_order.copy()
+
+        ordered_lines = copied_order.order_line.sorted(
+            key=lambda line: (line.sequence, line.id)
+        )
+        # Expect exactly 1 section + 1 pack + 2 components — same as original.
+        self.assertEqual(len(ordered_lines), 4)
+        self.assertEqual(ordered_lines[0].display_type, "line_section")
+        self.assertTrue(ordered_lines[0].collapse_composition)
+        pack_line = ordered_lines[1]
+        self.assertEqual(pack_line.product_id, self.pack)
+        self.assertAlmostEqual(pack_line.price_subtotal, 10)
+        self.assertEqual(ordered_lines[2].product_id, self.component1)
+        self.assertAlmostEqual(ordered_lines[2].price_unit, 20)
+        self.assertEqual(ordered_lines[3].product_id, self.component2)
+        self.assertAlmostEqual(ordered_lines[3].price_unit, 30)
+        # Total must not be inflated by double-copying components.
+        self.assertAlmostEqual(copied_order.amount_untaxed, 80)
+
     def test_non_detailed_modifiable_pack_with_nested_pack_not_expanded(self):
         nested_pack = self.env["product.product"].create(
             {

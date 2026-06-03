@@ -158,6 +158,16 @@ class SaleOrderLine(models.Model):
             component_lines += line
         return component_lines
 
+    def _get_non_detailed_pack_section_line(self):
+        """Return the section line (collapse_composition) that heads this pack group."""
+        self.ensure_one()
+        candidates = self.order_id.order_line.filtered(
+            lambda sol: sol.sequence < self.sequence
+            and sol.display_type == "line_section"
+            and sol.collapse_composition
+        )
+        return candidates.sorted("sequence", reverse=True)[:1]
+
     def _sync_non_detailed_pack_component_qty(self):
         """Sync component quantities with the pack product quantity."""
         self.ensure_one()
