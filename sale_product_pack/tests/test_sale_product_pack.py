@@ -188,6 +188,41 @@ class TestSaleProductPack(TestSaleProductPackBase):
         self.assertEqual(ordered_lines[2].product_uom_qty, 4)
         self.assertEqual(ordered_lines[3].product_uom_qty, 2)
 
+    def test_non_detailed_modifiable_pack_discount(self):
+        """The pack line sale_discount must reach the expanded component lines."""
+        group_discount = self.env.ref("sale.group_discount_per_so_line")
+        self.env.user.write({"group_ids": [(4, group_discount.id)]})
+        self.pack.pack_type = "non_detailed"
+        self.pack.pack_modifiable = True
+        self.pack_line1.sale_discount = 10.0
+        self.pack_line2.sale_discount = 10.0
+        self._add_so_line()
+        ordered_lines = self.sale_order.order_line.sorted(
+            key=lambda line: (line.sequence, line.id)
+        )
+        pack_line = ordered_lines[1]
+        # The pack product line keeps its own base price with no discount.
+        self.assertEqual(pack_line.product_id, self.pack)
+        self.assertAlmostEqual(pack_line.discount, 0)
+        self.assertAlmostEqual(pack_line.price_subtotal, 10)
+        # Component lines carry the sale_discount of their product.pack.line.
+        self.assertEqual(ordered_lines[2].product_id, self.component1)
+        self.assertEqual(ordered_lines[3].product_id, self.component2)
+        self.assertAlmostEqual(ordered_lines[2].discount, 10)
+        self.assertAlmostEqual(ordered_lines[3].discount, 10)
+        # 20 * 2 * 0.9 = 36 ; 30 * 1 * 0.9 = 27
+        self.assertAlmostEqual(ordered_lines[2].price_subtotal, 36)
+        self.assertAlmostEqual(ordered_lines[3].price_subtotal, 27)
+        # Total = base pack (10) + discounted components (36 + 27).
+        self.assertAlmostEqual(self.sale_order.amount_untaxed, 73)
+        # The discount survives a quantity change on the pack line.
+        pack_line.product_uom_qty = 2
+        ordered_lines = self.sale_order.order_line.sorted(
+            key=lambda line: (line.sequence, line.id)
+        )
+        self.assertAlmostEqual(ordered_lines[2].discount, 10)
+        self.assertAlmostEqual(ordered_lines[3].discount, 10)
+
     def test_non_detailed_modifiable_pack_copy(self):
         """Duplicating an order with a non-detailed modifiable pack."""
         self.pack.pack_type = "non_detailed"
