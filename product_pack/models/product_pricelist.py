@@ -29,7 +29,13 @@ class Pricelist(models.Model):
                 )._compute_price_rule(product, *args, **kwargs)[product.id][0]
 
             for line in product.sudo().pack_line_ids:
-                pack_price += line._get_pack_line_price(self, *args, **kwargs)
+                pack_price += line._get_pack_line_price(
+                    self,
+                    kwargs.get("quantity", args[0] if args else 1.0),
+                    uom=kwargs.get("uom"),
+                    date=kwargs.get("date"),
+                    currency=kwargs.get("currency"),
+                )
             return pack_price
         else:
             return super()._get_product_price(product, *args, **kwargs)
